@@ -40,6 +40,7 @@ defaults = {
   },
 }
 
+
 vms = [
   {
     #:hostname => 'gluno1',
@@ -57,6 +58,7 @@ vms = [
         :prefix => 'gluster',
       }, 
     },
+    :internal_if => 'virbr1',
     :networks => [
       {
         :link => 'virbr1',
@@ -129,6 +131,25 @@ vms.each do |vm|
 end
 
 
+# compose the list of cluster internal ips
+#
+cluster_internal_ips = vms.map do |vm|
+  net = nil
+  vm[:networks].each do |n|
+    if n[:link] == vm[:internal_if]
+      net = n
+      break
+    end
+  end
+  if net != nil
+    net[:ipv4]
+  end
+end
+
+#print "internal ips: "
+#print cluster_internal_ips
+#print "\n"
+
 #PROVISION_SCRIPT = <<SCRIPT
 #yum -y install make samba
 #SCRIPT
@@ -192,12 +213,23 @@ set -e
 systemctl start glusterd.service
 SCRIPT
 
+#GLUSTER_PROBE_SCRIPT = <<SCRIPT
+#set -e
+#
+#PEER_IP=$1
+#
+#gluster peer probe ${PEER_IP}
+#SCRIPT
+
 GLUSTER_PROBE_SCRIPT = <<SCRIPT
 set -e
 
-PEER_IP=$1
+PEER_IPS="$@"
 
-gluster peer probe ${PEER_IP}
+for PEER_IP in ${PEER_IPS}
+do
+  gluster peer probe ${PEER_IP}
+done
 SCRIPT
 
 
@@ -232,7 +264,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       # There is some problem with the fedora base box:
       # We need to up the interface on reboots.
       # It does not come up automatically.
-      node.vm.provision :shell, run: "always" do |s|
+      node.vm.provision "net_fix_always", type: "shell", run: "always" do |s|
         s.inline = NET_FIX_ALWAYS_SCRIPT
       end
 
@@ -242,7 +274,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       # the interface is not sufficient. We need to restart
       # NetworkManager in order to teach it to not feel
       # responsible for the interface any more.
-      node.vm.provision :shell do |s|
+      node.vm.provision "net_fix_initial", type: "shell" do |s|
         s.inline = NET_FIX_INITIAL_SCRIPT
       end
 
@@ -250,20 +282,26 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         s.inline = INSTALL_SCRIPT
       end
 
-      node.vm.provision :shell do |s|
+      # multiple privisioners with same name possible?
+      node.vm.provision "xfs", type: "shell" do |s|
         s.inline = XFS_SCRIPT
         #s.args = [ "vdb", "/export/gluster/brick1" ]
         s.args = [ "vdb" ]
       end
 
-      node.vm.provision :shell do |s|
+      node.vm.provision "xfs", type: "shell" do |s|
         s.inline = XFS_SCRIPT
         #s.args = [ "vdc" , "/export/gluster/brick2" ]
         s.args = [ "vdc" ]
       end
 
-      node.vm.provision :shell do |s|
+      node.vm.provision "gluster_start", type: "shell" do |s|
         s.inline = GLUSTER_START_SCRIPT
+      end
+
+      node.vm.provision "gluster_probe", type: "shell" do |s|
+        s.inline = GLUSTER_PROBE_SCRIPT
+        s.args = cluster_internal_ips
       end
 
     end
