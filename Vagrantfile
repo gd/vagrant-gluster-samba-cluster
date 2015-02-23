@@ -245,6 +245,36 @@ gluster volume create $VOLNAME rep $REP transport tcp $@
 gluster volume start $VOLNAME
 SCRIPT
 
+GLUSTER_MOUNT_SCRIPT = <<SCRIPT
+set -e
+VOLNAME=$1
+shift
+MOUNTPT=$1
+shift
+
+MOUNTDEV="127.0.0.1:/${VOLNAME}"
+
+mkdir -p ${MOUNTPT}
+
+#mount -t glusterfs ${MOUNTDEV} ${MOUNTPT}
+
+BACKUP_SUFFIX=".orig.$(date +%Y%m%d-%H%M%S)"
+
+FILE=/etc/fstab
+
+grep -q -s "${MOUNTPT}" || {
+  test -f ${FILE} || touch ${FILE}
+  cp -f -a ${FILE} ${FILE}${BACKUP_SUFFIX}
+
+  cat <<EOF >> ${FILE}
+${MOUNTDEV} ${MOUNTPT} glusterfs defaults,selinux 0 0
+EOF
+}
+
+mount ${MOUNTPT}
+
+SCRIPT
+
 #
 # The vagrant machine definitions
 #
@@ -317,9 +347,16 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       end
 
       node.vm.provision "gluster_createvol", type: "shell" do |s|
-        mount_points = cluster_internal_ips.map { |ip| "#{ip}:/export/vdb1/brick" }
+        mount_points = cluster_internal_ips.map do |ip|
+          "#{ip}:/export/vdb1/brick"
+        end
         s.inline = GLUSTER_CREATEVOL_SCRIPT
         s.args = [ "gv0", "3" ] + mount_points
+      end
+
+      node.vm.provision "gluster_mount", type: "shell" do |s|
+        s.inline = GLUSTER_MOUNT_SCRIPT
+        s.args = [ "gv0", "/gluster/gv0" ]
       end
     end
   end
