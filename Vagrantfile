@@ -232,6 +232,18 @@ do
 done
 SCRIPT
 
+GLUSTER_CREATEVOL_SCRIPT = <<SCRIPT
+set -e
+VOLNAME=$1
+shift
+REP=$1
+shift
+
+echo "gluster volume create $VOLNAME rep $REP transport tcp $@"
+gluster volume create $VOLNAME rep $REP transport tcp $@
+
+gluster volume start $VOLNAME
+SCRIPT
 
 #
 # The vagrant machine definitions
@@ -304,6 +316,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         s.args = cluster_internal_ips
       end
 
+      node.vm.provision "gluster_createvol", type: "shell" do |s|
+        mount_points = cluster_internal_ips.map { |ip| "#{ip}:/export/vdb1/brick" }
+        s.inline = GLUSTER_CREATEVOL_SCRIPT
+        s.args = [ "gv0", "3" ] + mount_points
+      end
     end
   end
 
