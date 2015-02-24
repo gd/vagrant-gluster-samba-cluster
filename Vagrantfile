@@ -298,6 +298,122 @@ mount ${MOUNTPT}
 
 SCRIPT
 
+
+CTDB_STOP_SCRIPT = <<SCRIPT
+set -e
+systemctl stop ctdb.service
+SCRIPT
+
+CTDB_CREATE_NODES_SCRIPT = <<SCRIPT
+set -e
+
+BACKUP_SUFFIX=".orig.$(date +%Y%m%d-%H%M%S)"
+
+NODES_IPS="$@"
+
+FILE=/etc/ctdb/nodes
+test -f ${FILE} || touch ${FILE}
+cp -f -a ${FILE} ${FILE}${BACKUP_SUFFIX}
+
+echo -n > ${FILE}
+for IP in ${NODES_IPS}
+do
+  echo "$IP" >> ${FILE}
+done
+SCRIPT
+
+CTDB_CREATE_PUBADDRS_SCRIPT = <<SCRIPT
+set -e
+
+BACKUP_SUFFIX=".orig.$(date +%Y%m%d-%H%M%S)"
+
+PUB_IPS="$@"
+
+FILE=/etc/ctdb/public_addresses
+test -f ${FILE} || touch ${FILE}
+cp -f -a ${FILE} ${FILE}${BACKUP_SUFFIX}
+
+echo -n > ${FILE}
+for IP in ${PUB_IPS}
+do
+  echo ${IP} >> ${FILE}
+done
+SCRIPT
+
+CTDB_CREATE_CONF_SCRIPT = <<SCRIPT
+set -e
+
+BACKUP_SUFFIX=".orig.$(date +%Y%m%d-%H%M%S)"
+
+RECLOCKDIR=/gluster/gv0/ctdb
+mkdir -p ${RECLOCKDIR}
+RECLOCKFILE=${RECLOCKDIR}/reclock
+
+PUBLIC_ADDRESSES_FILE=/etc/ctdb/public_addresses
+NODES_FILE=/etc/ctdb/nodes
+
+FILE=/etc/sysconfig/ctdb
+test -f ${FILE} || touch ${FILE}
+cp -f -a ${FILE} ${FILE}${BACKUP_SUFFIX}
+
+echo -n > ${FILE}
+cat <<EOF >> ${FILE}
+CTDB_NODES=${NODES_FILE}
+CTDB_PUBLIC_ADDRESSES=${PUBLIC_ADDRESSES_FILE}
+CTDB_RECOVERY_LOCK=${RECLOCKFILE}
+CTDB_MANAGES_SAMBA="yes"
+CTDB_SAMBA_SKIP_SHARE_CKECK="yes"
+#CTDB_MANAGES_WINBIND="yes"
+EOF
+SCRIPT
+
+SAMBA_CREATE_CONF_SCRIPT = <<SCRIPT
+set -e
+
+BACKUP_SUFFIX=".orig.$(date +%Y%m%d-%H%M%S)"
+
+GLUSTER_VOL=$1
+
+GLUSTER_VOL_MOUNT=$2
+
+mkdir -p ${GLUSTER_VOL_MOUNT}/share1
+chmod -R 0777 ${GLUSTER_VOL_MOUNT}/share1
+
+mkdir -p ${GLUSTER_VOL_MOUNT}/share2
+chmod -R 0777 ${GLUSTER_VOL_MOUNT}/share2
+
+FILE=/etc/samba/smb.conf
+test -f ${FILE} || touch ${FILE}
+cp -f -a ${FILE} ${FILE}${BACKUP_SUFFIX}
+
+echo -n > ${FILE}
+cat <<EOF >> ${FILE}
+[global]
+    netbios name = sambacluster
+    workgroup = vagrant
+    security = user
+
+    clustering = yes
+    #include = registry
+
+[share1]
+    path = /share1
+    vfs objects = acl_xattr glusterfs
+    glusterfs:volume = ${GLUSTER_VOL}
+    kernel share modes = no
+    read only = no
+
+[share2]
+    path = ${GLUSTER_VOL_MOUNT}/share2
+    vfs objects = acl_xattr
+    read only = no
+EOF
+SCRIPT
+
+CTDB_START_SCRIPT = <<SCRIPT
+set -e
+systemctl start ctdb.service
+SCRIPT
 #
 # The vagrant machine definitions
 #
@@ -381,6 +497,51 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         s.inline = GLUSTER_MOUNT_SCRIPT
         s.args = [ "gv0", "/gluster/gv0" ]
       end
+
+      node.vm.provision "gluster_createvol", type: "shell" do |s|
+        mount_points = cluster_internal_ips.map do |ip|
+          "#{ip}:/export/vdc1/brick"
+        end
+        s.inline = GLUSTER_CREATEVOL_SCRIPT
+        s.args = [ "gv1", "3" ] + mount_points
+      end
+
+      node.vm.provision "gluster_mount", type: "shell" do |s|
+        s.inline = GLUSTER_MOUNT_SCRIPT
+        s.args = [ "gv1", "/gluster/gv1" ]
+      end
+
+      #
+      # ctdb / samba config
+      #
+
+      node.vm.provision "ctdb_stop", type: "shell" do |s|
+        s.inline = CTDB_STOP_SCRIPT
+      end
+
+      node.vm.provision "ctdb_create_nodes", type: "shell" do |s|
+        s.inline = CTDB_CREATE_NODES_SCRIPT
+        s.args = cluster_internal_ips
+      end
+
+      #node.vm.provision "ctdb_create_pubaddrs", type: "shell" do |s|
+      #  s.inline = CTDB_CREATE_PUBADDRS_SCRIPT
+      #  s.arg =
+      #end
+
+      node.vm.provision "ctdb_create_conf", type: "shell" do |s|
+        s.inline = CTDB_CREATE_CONF_SCRIPT
+      end
+
+      node.vm.provision "samba_create_conf", type: "shell" do |s|
+        s.inline = SAMBA_CREATE_CONF_SCRIPT
+        s.args = [ "gv1", "/gluster/gv1" ]
+      end
+
+      node.vm.provision "ctdb_start", type: "shell" do |s|
+        s.inline = CTDB_START_SCRIPT
+      end
+
     end
   end
 
