@@ -158,7 +158,16 @@ NET_FIX_ALWAYS_SCRIPT = <<SCRIPT
 set -e
 # eth1 is not brought up automatically
 # by 'vagrant up' of the existing vm
+# because eth1 is not up, glusterd can
+# not be started and gluster volumes can
+# not be mountd. fix it all up here until
+# we have a correctly working environment
 ifup eth1
+systemctl restart glusterd
+MOUNTPT=/gluster/gv0
+grep -q -s "${MOUNTPT}" /etc/fstab && {
+  mount ${MOUNTPT}
+}
 SCRIPT
 
 NET_FIX_INITIAL_SCRIPT = <<SCRIPT
