@@ -276,20 +276,60 @@ done
 SCRIPT
 
 GLUSTER_CREATEVOL_SCRIPT = <<SCRIPT
-set -e
+#set -e
+
 VOLNAME=$1
 shift
 REP=$1
 shift
 
-echo "gluster volume create $VOLNAME rep $REP transport tcp $@"
-gluster volume create $VOLNAME rep $REP transport tcp $@
+MSG="$(gluster volume status ${VOLNAME} 2>&1 1>/dev/null)"
+RET=$?
+[ $RET -eq 0 ] && {
+  echo "gluster volume ${VOLNAME} already exists and is active."
+  exit 0
+}
 
-gluster volume start $VOLNAME
+[ "$MSG" = "Volume ${VOLNAME} does not exist" ] && {
+  echo "Creating gluster volume ${VOLNAME}."
+  echo "cmd: gluster volume create $VOLNAME rep $REP transport tcp $@"
+  gluster volume create $VOLNAME rep $REP transport tcp $@
+
+  [ $? -eq 0 ] || {
+    echo "gluster volume create $VOLNAME failed - trying to force."
+
+    gluster volume create $VOLNAME rep $REP transport tcp $@ force
+  }
+
+  [ $? -eq 0 ] || {
+    echo "gluster volume create $VOLNAME failed with force - giving up"
+    exit 1
+  }
+
+  MSG="$(gluster volume status ${VOLNAME} 2>&1 1>/dev/null)"
+  RET=$?
+
+  [ $RET -eq 0 ] && {
+    echo "gluster volume ${VOLNAME} is already started."
+    exit 0
+  }
+}
+
+[ "$MSG" = "Volume ${VOLNAME} is not started" ] && {
+  echo "starting gluster volume ${VOLNAME}."
+  gluster volume start $VOLNAME
+} || {
+  echo "Error: 'gluster volume status ${VOLNAME}' gave '$MSG' ($RET)"
+  exit 1
+}
+
+exit 0
+
 SCRIPT
 
 GLUSTER_MOUNT_SCRIPT = <<SCRIPT
 set -e
+
 VOLNAME=$1
 shift
 MOUNTPT=$1
