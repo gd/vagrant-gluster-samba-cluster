@@ -156,6 +156,7 @@ end
 
 NET_FIX_ALWAYS_SCRIPT = <<SCRIPT
 set -e
+
 # eth1 is not brought up automatically
 # by 'vagrant up' of the existing vm
 # because eth1 is not up, glusterd can
@@ -163,13 +164,29 @@ set -e
 # not be mountd. fix it all up here until
 # we have a correctly working environment
 ifup eth1
-MOUNTPT=/gluster/gv0
-grep -q -s "${MOUNTPT}" /etc/fstab && {
-  # already provisioned...
-  systemctl restart glusterd
-  mount ${MOUNTPT}
-}
-true
+
+MOUNTPTS="$@"
+
+for MOUNTPT in $MOUNTPTS
+do
+  grep -q -s "${MOUNTPT}" /etc/fstab && {
+    # already provisioned...
+    systemctl start glusterd
+    # sleep to give glusterd some time to start up
+    sleep 2
+
+    mount | grep -q -s "${MOUNTPT}" && {
+      echo "${MOUNTPT} is already mounted."
+    } || {
+      echo "Mounting ${MOUNTPT}."
+      mount ${MOUNTPT}
+    }
+  } || {
+    # not provisioned yet
+    echo "${MOUNTPT} not set up yet. Not mounting."
+  }
+done
+
 SCRIPT
 
 NET_FIX_INITIAL_SCRIPT = <<SCRIPT
@@ -527,6 +544,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       # It does not come up automatically.
       node.vm.provision "net_fix_always", type: "shell", run: "always" do |s|
         s.inline = NET_FIX_ALWAYS_SCRIPT
+        s.args = [ '/gluster/gv0', '/gluster/gv1' ]
       end
 
       # multiple privisioners with same name possible?
