@@ -200,23 +200,35 @@ BRICKD=${MOUNTP}/brick
 
 BACKUP_SUFFIX=".orig.$(date +%Y%m%d-%H%M%S)"
 
-parted -s ${DISKDEV} mklabel msdos
-parted -s ${DISKDEV} mkpart primary 1 100%
-mkfs.xfs -f ${DISKPARTDEV}
+parted -s ${DISKDEV} print || {
+  parted -s ${DISKDEV} mklabel msdos
+}
+
+parted -s ${DISKDEV} print 1 || {
+  parted -s ${DISKDEV} mkpart primary 1 100%
+}
+
+blkid -s type ${DISKPARTDEV} | grep -q -s TYPE="xfs" || {
+  mkfs.xfs -f ${DISKPARTDEV}
+}
 
 mkdir -p ${MOUNTP}
 
 FILE=/etc/fstab
-test -f ${FILE} || touch ${FILE}
-cp -f -a ${FILE} ${FILE}${BACKUP_SUFFIX}
 
-cat <<EOF >> ${FILE}
+grep -q -s ${DISKPARTDEV} ${FILE} || {
+  test -f ${FILE} || touch ${FILE}
+  cp -f -a ${FILE} ${FILE}${BACKUP_SUFFIX}
+  cat <<EOF >> ${FILE}
 ${DISKPARTDEV} ${MOUNTP} xfs defaults 0 0
 EOF
+}
 
-mount ${MOUNTP}
+mount | grep ${MOUNTP} || {
+  mount ${MOUNTP}
+}
 
-mkdir ${BRICKD}
+mkdir -p ${BRICKD}
 SCRIPT
 
 GLUSTER_START_SCRIPT = <<SCRIPT
