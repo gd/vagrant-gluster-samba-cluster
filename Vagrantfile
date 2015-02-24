@@ -251,7 +251,12 @@ PEER_IPS="$@"
 
 for PEER_IP in ${PEER_IPS}
 do
-  gluster peer probe ${PEER_IP}
+  # try for some time to reach the other node:
+  for COUNT in $(seq 1 12)
+  do
+    gluster peer probe ${PEER_IP} && break
+    sleep 1
+  done
 done
 SCRIPT
 
