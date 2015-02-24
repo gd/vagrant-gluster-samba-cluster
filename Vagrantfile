@@ -442,12 +442,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         end
       end
 
-      # There is some problem with the fedora base box:
-      # We need to up the interface on reboots.
-      # It does not come up automatically.
-      node.vm.provision "net_fix_always", type: "shell", run: "always" do |s|
-        s.inline = NET_FIX_ALWAYS_SCRIPT
-      end
 
       # There is some problem with the fedora base box:
       # Upon first boot, ifdown eth1 fails and the dhclient
@@ -459,8 +453,15 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         s.inline = NET_FIX_INITIAL_SCRIPT
       end
 
-      node.vm.provision :shell do |s|
+      node.vm.provision "install", type: "shell" do |s|
         s.inline = INSTALL_SCRIPT
+      end
+
+      # There is some problem with the fedora base box:
+      # We need to up the interface on reboots.
+      # It does not come up automatically.
+      node.vm.provision "net_fix_always", type: "shell", run: "always" do |s|
+        s.inline = NET_FIX_ALWAYS_SCRIPT
       end
 
       # multiple privisioners with same name possible?
