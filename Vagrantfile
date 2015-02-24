@@ -163,11 +163,13 @@ set -e
 # not be mountd. fix it all up here until
 # we have a correctly working environment
 ifup eth1
-systemctl restart glusterd
 MOUNTPT=/gluster/gv0
 grep -q -s "${MOUNTPT}" /etc/fstab && {
+  # already provisioned...
+  systemctl restart glusterd
   mount ${MOUNTPT}
 }
+true
 SCRIPT
 
 NET_FIX_INITIAL_SCRIPT = <<SCRIPT
