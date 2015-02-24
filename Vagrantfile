@@ -262,7 +262,7 @@ BACKUP_SUFFIX=".orig.$(date +%Y%m%d-%H%M%S)"
 
 FILE=/etc/fstab
 
-grep -q -s "${MOUNTPT}" || {
+grep -q -s "${MOUNTPT}" ${FILE} || {
   test -f ${FILE} || touch ${FILE}
   cp -f -a ${FILE} ${FILE}${BACKUP_SUFFIX}
 
