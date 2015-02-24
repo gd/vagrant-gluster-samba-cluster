@@ -485,13 +485,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       end
 
       # multiple privisioners with same name possible?
-      node.vm.provision "xfs", type: "shell" do |s|
+      node.vm.provision "xfs_0", type: "shell" do |s|
         s.inline = XFS_SCRIPT
         #s.args = [ "vdb", "/export/gluster/brick1" ]
         s.args = [ "vdb" ]
       end
 
-      node.vm.provision "xfs", type: "shell" do |s|
+      node.vm.provision "xfs_1", type: "shell" do |s|
         s.inline = XFS_SCRIPT
         #s.args = [ "vdc" , "/export/gluster/brick2" ]
         s.args = [ "vdc" ]
@@ -506,7 +506,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         s.args = cluster_internal_ips
       end
 
-      node.vm.provision "gluster_createvol", type: "shell" do |s|
+      node.vm.provision "gluster_createvol_0", type: "shell" do |s|
         mount_points = cluster_internal_ips.map do |ip|
           "#{ip}:/export/vdb1/brick"
         end
@@ -514,12 +514,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         s.args = [ "gv0", "3" ] + mount_points
       end
 
-      node.vm.provision "gluster_mount", type: "shell" do |s|
+      node.vm.provision "gluster_mount_0", type: "shell" do |s|
         s.inline = GLUSTER_MOUNT_SCRIPT
         s.args = [ "gv0", "/gluster/gv0" ]
       end
 
-      node.vm.provision "gluster_createvol", type: "shell" do |s|
+      node.vm.provision "gluster_createvol_1", type: "shell" do |s|
         mount_points = cluster_internal_ips.map do |ip|
           "#{ip}:/export/vdc1/brick"
         end
@@ -527,7 +527,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         s.args = [ "gv1", "3" ] + mount_points
       end
 
-      node.vm.provision "gluster_mount", type: "shell" do |s|
+      node.vm.provision "gluster_mount_1", type: "shell" do |s|
         s.inline = GLUSTER_MOUNT_SCRIPT
         s.args = [ "gv1", "/gluster/gv1" ]
       end
