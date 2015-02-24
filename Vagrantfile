@@ -354,7 +354,12 @@ ${MOUNTDEV} ${MOUNTPT} glusterfs defaults,selinux 0 0
 EOF
 }
 
-mount ${MOUNTPT}
+mount | grep -q -s ${MOUNTPT} && {
+  echo "${MOUNTPT} is already mounted."
+} || {
+  echo "Mounting ${MOUNTPT}."
+  mount ${MOUNTPT}
+}
 
 SCRIPT
 
