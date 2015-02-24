@@ -200,14 +200,14 @@ BRICKD=${MOUNTP}/brick
 
 BACKUP_SUFFIX=".orig.$(date +%Y%m%d-%H%M%S)"
 
-parted -s ${DISKDEV} print && {
+parted -s ${DISKDEV} print > /dev/null 2>&1 && {
   echo "Labe exists on ${DISKDEV}."
 } || {
   echo "Creating label on ${DISKDEV}."
   parted -s ${DISKDEV} mklabel msdos
 }
 
-parted -s ${DISKDEV} print 1 && {
+parted -s ${DISKDEV} print 1 > /dev/null 2>&1 && {
   echo "Partition ${DISKPARTDEV} exists."
 } || {
   echo "Creating partition ${DISKPARTDEV}."
