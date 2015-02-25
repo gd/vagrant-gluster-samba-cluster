@@ -291,7 +291,7 @@ do
   # try for some time to reach the other node:
   for COUNT in $(seq 1 20)
   do
-    gluster peer probe ${PEER_IP} && {
+    gluster peer probe ${PEER_IP} 2> /dev/null && {
       break
     } || {
       sleep 1
