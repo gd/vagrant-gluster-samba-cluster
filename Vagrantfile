@@ -154,6 +154,12 @@ end
 #yum -y install make samba
 #SCRIPT
 
+
+SELINUX_SCRIPT = <<SCRIPT
+set -e
+setenforce permissive
+SCRIPT
+
 NET_FIX_ALWAYS_SCRIPT = <<SCRIPT
 set -e
 
@@ -601,6 +607,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         end
       end
 
+
+      node.vm.provision "selinux", type: "shell" do |s|
+        s.inline = SELINUX_SCRIPT
+      end
 
       # There is some problem with the fedora base box:
       # Upon first boot, ifdown eth1 fails and the dhclient
