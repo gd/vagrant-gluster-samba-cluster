@@ -351,22 +351,30 @@ done
     MSG=$(gluster volume create $VOLNAME rep $REP transport tcp $@ 2>&1 1>/dev/null)
     RET=$?
     [ $RET -eq 0 ] && break
+    [ "$MSG" = "volume create: ${VOLNAME}: failed: Volume ${VOLNAME} already exists" ] && {
+      RET=0
+      break
+    }
     [ "$MSG" = "volume create: $VOLNAME: failed: Another transaction is in progress. Please try again after sometime." ] || break
   done
 
   [ $RET -eq 0 ] || {
-    echo "gluster volume create $VOLNAME failed ("$MSG")- trying to force."
+    echo "gluster volume create $VOLNAME failed ('$MSG')- trying to force."
 
     while true; do
       MSG=$(gluster volume create $VOLNAME rep $REP transport tcp $@ force 2>&1 1>/dev/null)
       RET=$?
       [ $RET -eq 0 ] && break
+      [ "$MSG" = "volume create: ${VOLNAME}: failed: Volume ${VOLNAME} already exists" ] && {
+        RET=0
+        break
+      }
       [ "$MSG" = "volume create: $VOLNAME: failed: Another transaction is in progress. Please try again after sometime." ] || break
     done
   }
 
   [ $RET -eq 0 ] || {
-    echo "gluster volume create $VOLNAME failed with force ("$MSG")- giving up"
+    echo "gluster volume create $VOLNAME failed with force ('$MSG')- giving up"
     exit 1
   }
 
@@ -386,7 +394,21 @@ done
 
 [ "$MSG" = "Volume ${VOLNAME} is not started" ] && {
   echo "starting gluster volume ${VOLNAME}."
-  gluster volume start $VOLNAME
+  while true; do
+    MSG=$(gluster volume start ${VOLNAME} 2>&1 1> /dev/null)
+    RET=$?
+    [ $RET -eq 0 ] && break
+    [ "$MSG" = "volume start: ${VOLNAME}: failed: Volume ${VOLNAME} already started" ] && {
+      RET=0
+      break
+    }
+    [ "$MSG" = "volume start: ${VOLNAME}: failed: Another transaction is in progress. Please try again after sometime." ] || break
+  done
+
+  [ $RET -eq 0 ] || {
+    echo "gluster volume start ${VOLNAME} failed ('$MSG')."
+    exit 1
+  }
 } || {
   echo "Error: 'gluster volume status ${VOLNAME}' gave '$MSG' ($RET)"
   exit 1
