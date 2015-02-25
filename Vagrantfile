@@ -284,10 +284,13 @@ PEER_IPS="$@"
 for PEER_IP in ${PEER_IPS}
 do
   # try for some time to reach the other node:
-  for COUNT in $(seq 1 12)
+  for COUNT in $(seq 1 20)
   do
-    gluster peer probe ${PEER_IP} && break
-    sleep 1
+    gluster peer probe ${PEER_IP} && {
+      break
+    } || {
+      sleep 1
+    }
   done
 done
 SCRIPT
@@ -529,6 +532,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.cache.scope = :box
   end
 
+  # just let one node do the probing
+  probing = false
+
   vms.each do |machine|
     config.vm.define machine[:hostname] do |node|
       node.vm.box = machine[:provider][:libvirt][:box]
@@ -587,9 +593,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         s.inline = GLUSTER_START_SCRIPT
       end
 
-      node.vm.provision "gluster_probe", type: "shell" do |s|
-        s.inline = GLUSTER_PROBE_SCRIPT
-        s.args = cluster_internal_ips
+      if !probing
+        probing = true
+        node.vm.provision "gluster_probe", type: "shell" do |s|
+          s.inline = GLUSTER_PROBE_SCRIPT
+          s.args = cluster_internal_ips
+        end
       end
 
       node.vm.provision "gluster_wait_peers", type: "shell" do |s|
