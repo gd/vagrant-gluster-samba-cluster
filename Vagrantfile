@@ -329,8 +329,14 @@ shift
 REP=$1
 shift
 
-MSG="$(gluster volume status ${VOLNAME} 2>&1 1>/dev/null)"
-RET=$?
+while true; do
+  MSG="$(gluster volume status ${VOLNAME} 2>&1 1>/dev/null)"
+  RET=$?
+  [ $RET -eq 0 ] && break
+  [ "$MSG" = 'Another transaction is in progress. Please try again after sometime.' ] || break
+  sleep 1
+done
+
 [ $RET -eq 0 ] && {
   echo "gluster volume ${VOLNAME} already exists and is active."
   exit 0
@@ -339,21 +345,36 @@ RET=$?
 [ "$MSG" = "Volume ${VOLNAME} does not exist" ] && {
   echo "Creating gluster volume ${VOLNAME}."
   echo "cmd: gluster volume create $VOLNAME rep $REP transport tcp $@"
-  gluster volume create $VOLNAME rep $REP transport tcp $@
+  while true; do
+    MSG=$(gluster volume create $VOLNAME rep $REP transport tcp $@ 2>&1 1>/dev/null)
+    RET=?
+    [ $RET -eq 0 ] && break
+    [ "$MSG" = 'Another transaction is in progress. Please try again after sometime.' ] || break
+  done
 
-  [ $? -eq 0 ] || {
-    echo "gluster volume create $VOLNAME failed - trying to force."
+  [ $RET -eq 0 ] || {
+    echo "gluster volume create $VOLNAME failed ("$MSG")- trying to force."
 
-    gluster volume create $VOLNAME rep $REP transport tcp $@ force
+    while true; do
+      MSG=$(gluster volume create $VOLNAME rep $REP transport tcp $@ force 2>&1 1>/dev/null)
+      RET=?
+      [ $RET -eq 0 ] && break
+      [ "$MSG" = 'Another transaction is in progress. Please try again after sometime.' ] || break
+    done
   }
 
-  [ $? -eq 0 ] || {
-    echo "gluster volume create $VOLNAME failed with force - giving up"
+  [ $RET -eq 0 ] || {
+    echo "gluster volume create $VOLNAME failed with force ("$MSG")- giving up"
     exit 1
   }
 
-  MSG="$(gluster volume status ${VOLNAME} 2>&1 1>/dev/null)"
-  RET=$?
+  while true; do
+    MSG="$(gluster volume status ${VOLNAME} 2>&1 1>/dev/null)"
+    RET=$?
+    [ $RET -eq 0 ] && break
+    [ "$MSG" = 'Another transaction is in progress. Please try again after sometime.' ] || break
+    sleep 1
+  done
 
   [ $RET -eq 0 ] && {
     echo "gluster volume ${VOLNAME} is already started."
