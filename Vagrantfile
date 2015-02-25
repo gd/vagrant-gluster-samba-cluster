@@ -349,9 +349,9 @@ done
   echo "cmd: gluster volume create $VOLNAME rep $REP transport tcp $@"
   while true; do
     MSG=$(gluster volume create $VOLNAME rep $REP transport tcp $@ 2>&1 1>/dev/null)
-    RET=?
+    RET=$?
     [ $RET -eq 0 ] && break
-    [ "$MSG" = 'Another transaction is in progress. Please try again after sometime.' ] || break
+    [ "$MSG" = "volume create: $VOLNAME: failed: Another transaction is in progress. Please try again after sometime." ] || break
   done
 
   [ $RET -eq 0 ] || {
@@ -359,9 +359,9 @@ done
 
     while true; do
       MSG=$(gluster volume create $VOLNAME rep $REP transport tcp $@ force 2>&1 1>/dev/null)
-      RET=?
+      RET=$?
       [ $RET -eq 0 ] && break
-      [ "$MSG" = 'Another transaction is in progress. Please try again after sometime.' ] || break
+      [ "$MSG" = "volume create: $VOLNAME: failed: Another transaction is in progress. Please try again after sometime." ] || break
     done
   }
 
