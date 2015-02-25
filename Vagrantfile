@@ -163,6 +163,7 @@ set -e
 # not be started and gluster volumes can
 # not be mountd. fix it all up here until
 # we have a correctly working environment
+ifdown eth1
 ifup eth1
 
 MOUNTPTS="$@"
@@ -194,6 +195,7 @@ set -e
 # Fix dhclient running on private network IF
 ifdown eth1
 systemctl restart NetworkManager
+ifdown eth1
 ifup eth1
 SCRIPT
 
