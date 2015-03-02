@@ -224,7 +224,7 @@ echo "Installing software..."
 
 yum -y install xfsprogs
 yum -y install glusterfs{,-server,-fuse,-geo-replication}
-yum -y install ctdb samba
+yum -y install ctdb samba{,-client,-vfs-glusterfs}
 SCRIPT
 
 XFS_SCRIPT = <<SCRIPT
