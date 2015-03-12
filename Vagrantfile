@@ -307,7 +307,7 @@ PEER_IPS="$@"
 for PEER_IP in ${PEER_IPS}
 do
   # try for some time to reach the other node:
-  for COUNT in $(seq 1 20)
+  for COUNT in $(seq 1 120)
   do
     gluster peer probe ${PEER_IP} 2> /dev/null && {
       break
@@ -325,7 +325,7 @@ NUM_NODES="$1"
 
 echo "Waiting for $NUM_NODES peers."
 
-for count in $(seq 1 60)
+for count in $(seq 1 300)
 do
   PEERS=$(gluster pool list | grep -v ^UUID | wc -l)
   [ "$PEERS" = "$NUM_NODES" ] && {
