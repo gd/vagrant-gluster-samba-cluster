@@ -155,23 +155,6 @@ end
 #SCRIPT
 
 
-SELINUX_SCRIPT = <<SCRIPT
-set -e
-setenforce permissive
-
-BACKUP_SUFFIX=".orig.$(date +%Y%m%d-%H%M%S)"
-
-FILE=/etc/selinux/config
-test -f ${FILE} && {
-  sed -i${BACKUP_SUFFIX} -e 's/^SELINUX=.*$/SELINUX=disabled/g' ${FILE}
-} || {
-  cat <<EOF > ${FILE}
-SELINUX=disabled
-EOF
-}
-  touch ${FILE}
-SCRIPT
-
 NET_FIX_ALWAYS_SCRIPT = <<SCRIPT
 set -e
 
@@ -621,7 +604,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
 
       node.vm.provision "selinux", type: "shell" do |s|
-        s.inline = SELINUX_SCRIPT
+        s.path = "provision/shell/sys/selinux-off.sh"
       end
 
       # There is some problem with the fedora base box:
