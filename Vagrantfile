@@ -400,7 +400,7 @@ done
     MSG="$(gluster volume status ${VOLNAME} 2>&1 1>/dev/null)"
     RET=$?
     [ $RET -eq 0 ] && break
-    [ "$MSG" = 'Another transaction is in progress. Please try again after sometime.' ] || break
+    [ "${MSG}" != "${MSG#Another transaction}" ] || break
     sleep 1
   done
 
