@@ -620,11 +620,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       end
 
       node.vm.provision "install", type: "shell" do |s|
-        s.inline = INSTALL_SCRIPT
-        s. args = [ "xfsprogs",
-                    "glusterfs{,-server,-fuse,-geo-replication}",
-                    "ctdb",
-                    "samba{,-client,-vfs-glusterfs}" ]
+        s.path = "provision/shell/sys/install-yum.sh"
+        s.args = [ "xfsprogs",
+                   "glusterfs{,-server,-fuse,-geo-replication}",
+                   "ctdb",
+                   "samba{,-client,-vfs-glusterfs}" ]
       end
 
       # There is some problem with the fedora base box:
