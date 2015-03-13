@@ -582,7 +582,8 @@ SCRIPT
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   if Vagrant.has_plugin?("vagrant-cachier")
-    config.cache.scope = :box
+    config.cache.scope = :machine
+    #config.cache.scope = :box
   end
 
   # just let one node do the probing
