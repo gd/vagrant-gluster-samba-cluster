@@ -183,6 +183,8 @@ do
       echo "Mounting ${MOUNTPT}."
       mount ${MOUNTPT}
     }
+
+    systemctl start ctdb
   } || {
     # not provisioned yet
     echo "${MOUNTPT} not set up yet. Not mounting."
