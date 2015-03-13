@@ -4,7 +4,11 @@
 
 set -e
 
-setenforce permissive
+GETENFORCE="$(getenforce 2> /dev/null)"
+
+[ "${GETENFORCE}" = "Disabled" ] || {
+  setenforce permissive
+}
 
 BACKUP_SUFFIX=".orig.$(date +%Y%m%d-%H%M%S)"
 
