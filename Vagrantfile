@@ -283,6 +283,8 @@ set -e
 
 PEER_IPS="$@"
 
+echo "peer probing for ${PEER_IPS}"
+
 for PEER_IP in ${PEER_IPS}
 do
   # try for some time to reach the other node:
