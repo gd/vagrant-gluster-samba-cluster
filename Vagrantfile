@@ -261,10 +261,6 @@ mount | grep ${MOUNTP} && {
 mkdir -p ${BRICKD}
 SCRIPT
 
-GLUSTER_START_SCRIPT = <<SCRIPT
-set -e
-systemctl start glusterd.service
-SCRIPT
 
 GLUSTER_PROBE_SCRIPT = <<SCRIPT
 set -e
@@ -649,7 +645,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       end
 
       node.vm.provision "gluster_start", type: "shell" do |s|
-        s.inline = GLUSTER_START_SCRIPT
+        s.path = "provision/shell/gluster/gluster-start.sh"
       end
 
       if !probing
