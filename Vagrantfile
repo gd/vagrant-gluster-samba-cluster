@@ -278,14 +278,6 @@ set -e
 systemctl start glusterd.service
 SCRIPT
 
-#GLUSTER_PROBE_SCRIPT = <<SCRIPT
-#set -e
-#
-#PEER_IP=$1
-#
-#gluster peer probe ${PEER_IP}
-#SCRIPT
-
 GLUSTER_PROBE_SCRIPT = <<SCRIPT
 set -e
 
