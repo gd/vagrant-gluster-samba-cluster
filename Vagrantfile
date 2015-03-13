@@ -203,11 +203,13 @@ SCRIPT
 INSTALL_SCRIPT = <<SCRIPT
 set -e
 
-echo "Installing software..."
+INSTALL="$@"
 
-yum -y install xfsprogs
-yum -y install glusterfs{,-server,-fuse,-geo-replication}
-yum -y install ctdb samba{,-client,-vfs-glusterfs}
+echo "Installing software [${INSTALL}] ..."
+
+yum -y -v makecache fast
+
+yum -y -v install ${INSTALL}
 SCRIPT
 
 XFS_SCRIPT = <<SCRIPT
@@ -619,6 +621,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       node.vm.provision "install", type: "shell" do |s|
         s.inline = INSTALL_SCRIPT
+        s. args = [ "xfsprogs",
+                    "glusterfs{,-server,-fuse,-geo-replication}",
+                    "ctdb",
+                    "samba{,-client,-vfs-glusterfs}" ]
       end
 
       # There is some problem with the fedora base box:
