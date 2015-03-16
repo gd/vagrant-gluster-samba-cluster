@@ -202,18 +202,6 @@ ifdown eth1
 ifup eth1
 SCRIPT
 
-INSTALL_SCRIPT = <<SCRIPT
-set -e
-
-INSTALL="$@"
-
-echo "Installing software [${INSTALL}] ..."
-
-yum -y -v makecache fast
-
-yum -y -v install ${INSTALL}
-SCRIPT
-
 XFS_SCRIPT = <<SCRIPT
 set -e
 
