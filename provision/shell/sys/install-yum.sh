@@ -4,6 +4,6 @@ INSTALL="$@"
 
 echo "Installing software [${INSTALL}] ..."
 
-yum -y -v makecache fast
+yum -y makecache fast
 
-yum -y -v install ${INSTALL}
+yum -y install ${INSTALL}
