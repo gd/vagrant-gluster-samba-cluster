@@ -658,6 +658,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
           s.inline = GLUSTER_PROBE_SCRIPT
           s.args = cluster_internal_ips
         end
+        probing = false
       end
 
       node.vm.provision "gluster_wait_peers", type: "shell" do |s|
