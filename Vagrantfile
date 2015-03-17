@@ -271,10 +271,11 @@ set -e
 
 PEER_IPS="$@"
 
-echo "peer probing for ${PEER_IPS}"
+echo "peer probing for [${PEER_IPS}]"
 
 for PEER_IP in ${PEER_IPS}
 do
+  echo "peer probing for '${PEER_IP}'"
   # try for some time to reach the other node:
   for COUNT in $(seq 1 120)
   do
