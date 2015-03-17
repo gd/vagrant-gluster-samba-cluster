@@ -414,8 +414,6 @@ MOUNTDEV="127.0.0.1:/${VOLNAME}"
 
 mkdir -p ${MOUNTPT}
 
-#mount -t glusterfs ${MOUNTDEV} ${MOUNTPT}
-
 BACKUP_SUFFIX=".orig.$(date +%Y%m%d-%H%M%S)"
 
 FILE=/etc/fstab
@@ -435,7 +433,6 @@ mount | grep -q -s ${MOUNTPT} && {
   echo "Mounting ${MOUNTPT}."
   mount ${MOUNTPT}
 }
-
 SCRIPT
 
 
