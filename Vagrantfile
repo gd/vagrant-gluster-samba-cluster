@@ -295,10 +295,11 @@ GLUSTER_WAIT_PEERS_SCRIPT = <<SCRIPT
 set -e
 
 NUM_NODES="$1"
+TIMEOUT=$2
 
 echo "Waiting for $NUM_NODES peers."
 
-for count in $(seq 1 300)
+for count in $(seq 1 ${TIMEOUT})
 do
   PEERS=$(gluster pool list | grep -v ^UUID | wc -l)
   [ "$PEERS" = "$NUM_NODES" ] && {
@@ -663,7 +664,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       node.vm.provision "gluster_wait_peers", type: "shell" do |s|
         s.inline = GLUSTER_WAIT_PEERS_SCRIPT
-        s.args = [ cluster_internal_ips.length ]
+        s.args = [ cluster_internal_ips.length, 300]
       end
 
       node.vm.provision "gluster_createvol_0", type: "shell" do |s|
