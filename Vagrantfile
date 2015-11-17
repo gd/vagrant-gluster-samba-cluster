@@ -613,9 +613,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       # the interface is not sufficient. We need to restart
       # NetworkManager in order to teach it to not feel
       # responsible for the interface any more.
-      node.vm.provision "net_fix_initial", type: "shell" do |s|
-        s.inline = NET_FIX_INITIAL_SCRIPT
-      end
+      ###node.vm.provision "net_fix_initial", type: "shell" do |s|
+      ###  s.inline = NET_FIX_INITIAL_SCRIPT
+      ###end
 
       node.vm.provision "install", type: "shell" do |s|
         s.path = "provision/shell/sys/install-yum.sh"
@@ -633,10 +633,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       # There is some problem with the fedora base box:
       # We need to up the interface on reboots.
       # It does not come up automatically.
-      node.vm.provision "net_fix_always", type: "shell", run: "always" do |s|
-        s.inline = NET_FIX_ALWAYS_SCRIPT
-        s.args = [ '/gluster/gv0', '/gluster/gv1' ]
-      end
+      ###node.vm.provision "net_fix_always", type: "shell", run: "always" do |s|
+      ###  s.inline = NET_FIX_ALWAYS_SCRIPT
+      ###  s.args = [ '/gluster/gv0', '/gluster/gv1' ]
+      ###end
 
       # multiple privisioners with same name possible?
       node.vm.provision "xfs_0", type: "shell" do |s|
