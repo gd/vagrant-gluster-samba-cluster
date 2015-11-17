@@ -565,6 +565,8 @@ SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+
   #if Vagrant.has_plugin?("vagrant-cachier")
   #  config.cache.scope = :machine
   #  #config.cache.scope = :box
