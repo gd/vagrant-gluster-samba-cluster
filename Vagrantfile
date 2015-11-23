@@ -327,7 +327,7 @@ while true; do
   MSG="$(gluster volume status ${VOLNAME} 2>&1 1>/dev/null)"
   RET=$?
   [ $RET -eq 0 ] && break
-  [ "$MSG" = 'Another transaction is in progress. Please try again after sometime.' ] || break
+  [ "${MSG}" != "${MSG#Another transaction is in progress}" ] || break
   sleep 1
 done
 
@@ -347,7 +347,7 @@ done
       RET=0
       break
     }
-    [ "$MSG" = "volume create: $VOLNAME: failed: Another transaction is in progress. Please try again after sometime." ] || break
+    [ "${MSG}" != "${MSG#Another transaction is in progress}" ] || break
   done
 
   [ $RET -eq 0 ] || {
@@ -361,7 +361,7 @@ done
         RET=0
         break
       }
-      [ "$MSG" = "volume create: $VOLNAME: failed: Another transaction is in progress. Please try again after sometime." ] || break
+      [ "${MSG}" != "${MSG#Another transaction is in progress}" ] || break
     done
   }
 
@@ -374,7 +374,7 @@ done
     MSG="$(gluster volume status ${VOLNAME} 2>&1 1>/dev/null)"
     RET=$?
     [ $RET -eq 0 ] && break
-    [ "${MSG}" != "${MSG#Another transaction}" ] || break
+    [ "${MSG}" != "${MSG#Another transaction is in progress}" ] || break
     sleep 1
   done
 
@@ -394,7 +394,7 @@ done
       RET=0
       break
     }
-    [ "$MSG" = "volume start: ${VOLNAME}: failed: Another transaction is in progress. Please try again after sometime." ] || break
+    [ "${MSG}" != "${MSG#Another transaction is in progress}" ] || break
   done
 
   [ $RET -eq 0 ] || {
