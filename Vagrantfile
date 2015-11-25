@@ -444,11 +444,6 @@ mount | grep -q -s ${MOUNTPT} && {
 SCRIPT
 
 
-CTDB_STOP_SCRIPT = <<SCRIPT
-set -e
-systemctl stop ctdb.service
-SCRIPT
-
 CTDB_CREATE_NODES_SCRIPT = <<SCRIPT
 set -e
 
@@ -700,7 +695,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       #
 
       node.vm.provision "ctdb_stop", type: "shell" do |s|
-        s.inline = CTDB_STOP_SCRIPT
+        s.path = "provision/shell/ctdb/ctdb-stop.sh"
       end
 
       node.vm.provision "ctdb_create_nodes", type: "shell" do |s|
