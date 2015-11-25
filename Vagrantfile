@@ -159,11 +159,11 @@ NET_FIX_ALWAYS_SCRIPT = <<SCRIPT
 set -e
 
 # eth1 is not brought up automatically
-# by 'vagrant up' of the existing vm
+# by 'vagrant up' of the existing vm.
 # because eth1 is not up, glusterd can
 # not be started and gluster volumes can
-# not be mountd. fix it all up here until
-# we have a correctly working environment
+# not be mounted. fix it all up here until
+# we have a correctly working environment.
 ifdown eth1
 ifup eth1
 
