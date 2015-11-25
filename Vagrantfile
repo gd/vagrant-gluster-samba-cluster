@@ -550,10 +550,6 @@ cat <<EOF >> ${FILE}
 EOF
 SCRIPT
 
-CTDB_START_SCRIPT = <<SCRIPT
-set -e
-systemctl start ctdb.service
-SCRIPT
 #
 # The vagrant machine definitions
 #
@@ -718,7 +714,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       end
 
       node.vm.provision "ctdb_start", type: "shell" do |s|
-        s.inline = CTDB_START_SCRIPT
+        s.path = "provision/shell/ctdb/ctdb-start.sh"
       end
 
     end
