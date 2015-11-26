@@ -203,24 +203,6 @@ ifup eth1
 SCRIPT
 
 
-CTDB_CREATE_NODES_SCRIPT = <<SCRIPT
-set -e
-
-BACKUP_SUFFIX=".orig.$(date +%Y%m%d-%H%M%S)"
-
-NODES_IPS="$@"
-
-FILE=/etc/ctdb/nodes
-test -f ${FILE} || touch ${FILE}
-cp -f -a ${FILE} ${FILE}${BACKUP_SUFFIX}
-
-echo -n > ${FILE}
-for IP in ${NODES_IPS}
-do
-  echo "$IP" >> ${FILE}
-done
-SCRIPT
-
 CTDB_CREATE_PUBADDRS_SCRIPT = <<SCRIPT
 set -e
 
@@ -452,7 +434,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       end
 
       node.vm.provision "ctdb_create_nodes", type: "shell" do |s|
-        s.inline = CTDB_CREATE_NODES_SCRIPT
+        s.path = "provision/shell/ctdb/ctdb-create-nodes.sh"
         s.args = cluster_internal_ips
       end
 
