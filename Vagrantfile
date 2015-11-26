@@ -209,8 +209,8 @@ DEVICE=$1
 PARTDEV=${DEVICE}1
 DISKDEV="/dev/${DEVICE}"
 DISKPARTDEV="/dev/${PARTDEV}"
-##MOUNTP=$2
-MOUNTP=/export/${PARTDEV}
+EXPORT_BASEDIR=$2
+MOUNTP=${EXPORT_BASEDIR}/${PARTDEV}
 BRICKD=${MOUNTP}/brick
 
 BACKUP_SUFFIX=".orig.$(date +%Y%m%d-%H%M%S)"
@@ -632,14 +632,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       # multiple privisioners with same name possible?
       node.vm.provision "xfs_0", type: "shell" do |s|
         s.inline = XFS_SCRIPT
-        #s.args = [ "vdb", "/export/gluster/brick1" ]
-        s.args = [ "vdb" ]
+        s.args = [ "vdb", "/export" ]
       end
 
       node.vm.provision "xfs_1", type: "shell" do |s|
         s.inline = XFS_SCRIPT
-        #s.args = [ "vdc" , "/export/gluster/brick2" ]
-        s.args = [ "vdc" ]
+        s.args = [ "vdc", "/export" ]
       end
 
       node.vm.provision "gluster_start", type: "shell" do |s|
