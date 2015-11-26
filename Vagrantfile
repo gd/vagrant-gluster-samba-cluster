@@ -36,6 +36,7 @@ defaults = {
   :provider => {
     :libvirt => {
       :prefix => 'vagrant',
+      :box => 'fedora/23-cloud-base',
     },
   },
 }
@@ -54,7 +55,6 @@ vms = [
         #:container_name => 'node1',
       },
       :libvirt => {
-        :box => 'local-fedora-21.2',
         :prefix => 'gluster',
       }, 
     },
