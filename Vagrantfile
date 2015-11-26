@@ -202,7 +202,7 @@ ifdown eth1
 ifup eth1
 SCRIPT
 
-XFS_SCRIPT = <<SCRIPT
+CREATE_BRICK_SCRIPT = <<SCRIPT
 set -e
 
 DEVICE=$1
@@ -631,12 +631,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       # multiple privisioners with same name possible?
       node.vm.provision "xfs_0", type: "shell" do |s|
-        s.inline = XFS_SCRIPT
+        s.inline = CREATE_BRICK_SCRIPT
         s.args = [ "vdb", "/export" ]
       end
 
       node.vm.provision "xfs_1", type: "shell" do |s|
-        s.inline = XFS_SCRIPT
+        s.inline = CREATE_BRICK_SCRIPT
         s.args = [ "vdc", "/export" ]
       end
 
