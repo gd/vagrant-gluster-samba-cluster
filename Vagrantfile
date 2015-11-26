@@ -202,34 +202,6 @@ ifdown eth1
 ifup eth1
 SCRIPT
 
-GLUSTER_PROBE_SCRIPT = <<SCRIPT
-set -e
-
-PEER_IPS="$@"
-
-echo "peer probing for [${PEER_IPS}]"
-
-for PEER_IP in ${PEER_IPS}
-do
-  echo "peer probing for '${PEER_IP}'"
-
-  for COUNT in $(seq 1 120)
-  do
-    gluster peer probe ${PEER_IP} 2> /dev/null && {
-      echo "reached node '${PEER_IP}'"
-      break
-    } || {
-      sleep 1
-    }
-  done
-
-  gluster peer probe ${PEER_IP} 2> /dev/null || {
-    echo "did not reach node '${PEER_IP}' - stopping here"
-    break
-  }
-done
-exit 0
-SCRIPT
 
 GLUSTER_WAIT_PEERS_SCRIPT = <<SCRIPT
 set -e
@@ -587,7 +559,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       if !probing
         probing = true
         node.vm.provision "gluster_probe", type: "shell" do |s|
-          s.inline = GLUSTER_PROBE_SCRIPT
+          s.path = "provision/shell/gluster/gluster-probe.sh"
           s.args = cluster_internal_ips
         end
         probing = false
