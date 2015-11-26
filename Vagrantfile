@@ -208,7 +208,7 @@ set -e
 
 BACKUP_SUFFIX=".orig.$(date +%Y%m%d-%H%M%S)"
 
-RECLOCKDIR=/gluster/gv0/ctdb
+RECLOCKDIR="$1"
 mkdir -p ${RECLOCKDIR}
 RECLOCKFILE=${RECLOCKDIR}/reclock
 
@@ -427,6 +427,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       node.vm.provision "ctdb_create_conf", type: "shell" do |s|
         s.inline = CTDB_CREATE_CONF_SCRIPT
+        s.args = [ "/gluster/gv0/ctdb" ]
       end
 
       node.vm.provision "samba_create_conf", type: "shell" do |s|
