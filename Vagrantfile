@@ -203,33 +203,6 @@ ifup eth1
 SCRIPT
 
 
-CTDB_CREATE_CONF_SCRIPT = <<SCRIPT
-set -e
-
-BACKUP_SUFFIX=".orig.$(date +%Y%m%d-%H%M%S)"
-
-RECLOCKDIR="$1"
-mkdir -p ${RECLOCKDIR}
-RECLOCKFILE=${RECLOCKDIR}/reclock
-
-PUBLIC_ADDRESSES_FILE=/etc/ctdb/public_addresses
-NODES_FILE=/etc/ctdb/nodes
-
-FILE=/etc/sysconfig/ctdb
-test -f ${FILE} || touch ${FILE}
-cp -f -a ${FILE} ${FILE}${BACKUP_SUFFIX}
-
-echo -n > ${FILE}
-cat <<EOF >> ${FILE}
-CTDB_NODES=${NODES_FILE}
-#CTDB_PUBLIC_ADDRESSES=${PUBLIC_ADDRESSES_FILE}
-CTDB_RECOVERY_LOCK=${RECLOCKFILE}
-CTDB_MANAGES_SAMBA="yes"
-CTDB_SAMBA_SKIP_SHARE_CHECK="yes"
-#CTDB_MANAGES_WINBIND="yes"
-EOF
-SCRIPT
-
 SAMBA_CREATE_CONF_SCRIPT = <<SCRIPT
 set -e
 
@@ -426,7 +399,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       #end
 
       node.vm.provision "ctdb_create_conf", type: "shell" do |s|
-        s.inline = CTDB_CREATE_CONF_SCRIPT
+        s.path = "provision/shell/ctdb/ctdb-create-conf.sh"
         s.args = [ "/gluster/gv0/ctdb" ]
       end
 
