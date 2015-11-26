@@ -203,40 +203,6 @@ ifup eth1
 SCRIPT
 
 
-GLUSTER_MOUNT_SCRIPT = <<SCRIPT
-set -e
-
-VOLNAME=$1
-shift
-MOUNTPT=$1
-shift
-
-MOUNTDEV="127.0.0.1:/${VOLNAME}"
-
-mkdir -p ${MOUNTPT}
-
-BACKUP_SUFFIX=".orig.$(date +%Y%m%d-%H%M%S)"
-
-FILE=/etc/fstab
-
-grep -q -s "${MOUNTPT}" ${FILE} || {
-  test -f ${FILE} || touch ${FILE}
-  cp -f -a ${FILE} ${FILE}${BACKUP_SUFFIX}
-
-  cat <<EOF >> ${FILE}
-${MOUNTDEV} ${MOUNTPT} glusterfs defaults,selinux 0 0
-EOF
-}
-
-mount | grep -q -s ${MOUNTPT} && {
-  echo "${MOUNTPT} is already mounted."
-} || {
-  echo "Mounting ${MOUNTPT}."
-  mount ${MOUNTPT}
-}
-SCRIPT
-
-
 CTDB_CREATE_NODES_SCRIPT = <<SCRIPT
 set -e
 
@@ -460,7 +426,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       end
 
       node.vm.provision "gluster_mount_0", type: "shell" do |s|
-        s.inline = GLUSTER_MOUNT_SCRIPT
+        s.path = "provision/shell/gluster/gluster-mount-volume.sh"
         s.args = [ "gv0", "/gluster/gv0" ]
       end
 
@@ -473,7 +439,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       end
 
       node.vm.provision "gluster_mount_1", type: "shell" do |s|
-        s.inline = GLUSTER_MOUNT_SCRIPT
+        s.path = "provision/shell/gluster/gluster-mount-volume.sh"
         s.args = [ "gv1", "/gluster/gv1" ]
       end
 
