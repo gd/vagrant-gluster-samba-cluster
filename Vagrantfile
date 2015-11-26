@@ -202,31 +202,6 @@ ifdown eth1
 ifup eth1
 SCRIPT
 
-
-GLUSTER_WAIT_PEERS_SCRIPT = <<SCRIPT
-set -e
-
-NUM_NODES="$1"
-TIMEOUT=$2
-
-echo "Waiting for $NUM_NODES peers."
-
-for count in $(seq 1 ${TIMEOUT})
-do
-  PEERS=$(gluster pool list | grep -v ^UUID | wc -l)
-  [ "$PEERS" = "$NUM_NODES" ] && {
-    echo "Done waiting: $NUM_NODES peers connected."
-    exit 0
-  } || {
-    sleep 1
-  }
-done
-
-echo "TIMEOUT waiting for $NUM_NODES peers."
-exit 1
-
-SCRIPT
-
 GLUSTER_CREATEVOL_SCRIPT = <<SCRIPT
 #set -e
 
@@ -566,7 +541,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       end
 
       node.vm.provision "gluster_wait_peers", type: "shell" do |s|
-        s.inline = GLUSTER_WAIT_PEERS_SCRIPT
+        s.path = "provision/shell/gluster/gluster-wait-peers.sh"
         s.args = [ cluster_internal_ips.length, 300]
       end
 
