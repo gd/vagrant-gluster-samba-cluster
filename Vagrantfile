@@ -150,10 +150,6 @@ end
 #print cluster_internal_ips
 #print "\n"
 
-#PROVISION_SCRIPT = <<SCRIPT
-#yum -y install make samba
-#SCRIPT
-
 
 NET_FIX_ALWAYS_SCRIPT = <<SCRIPT
 set -e
