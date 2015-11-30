@@ -38,6 +38,10 @@ defaults = {
       :prefix => 'vagrant',
       :box => 'fedora/23-cloud-base',
     },
+    :virtualbox => {
+      :prefix => 'vagrant',
+      :box => 'fedora/23-cloud-base',
+    },
   },
 }
 
@@ -70,6 +74,16 @@ vms = [
       #},
     ],
   },
+]
+
+# disks: hard-coded for all nodes for now:
+disks = [
+      {
+        :size => 1, # in GB
+      },
+      {
+        :size => 10,
+      },
 ]
 
 #
@@ -267,7 +281,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # just let one node do the probing
   probing = false
 
-  vms.each do |machine|
+  vms.each do |machine,machine_num|
     config.vm.define machine[:hostname] do |node|
       node.vm.box = machine[:provider][:libvirt][:box]
       node.vm.hostname = machine[:hostname]
@@ -277,14 +291,34 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         libvirt.memory = 1024
         libvirt.storage :file, :size => '64M', :device => 'vdb'
         libvirt.storage :file, :size => '10G', :device => 'vdc'
+      end
 
-        machine[:networks].each do |net|
-          if not net[:ipv4] == ''
-            node.vm.network :private_network, :ip => net[:ipv4]
-          end
+      node.vm.provider :virtualbox do |vb|
+        #vb.default_prefix = machine[:provider][:virtualbox][:prefix]
+        vb.memory = 1024
+      end
+
+      driveletters = ('b'..'z').to_a
+      disks.each_with_index do |disk,disk_num|
+        disk[:number] = disk_num
+        node.vm.provider :libvirt do |lv|
+          disk[:name] = "vd#{driveletters[disk[:number]]}"
+          lv.storage :file, :size => '%{disk[:size]}G', :device => '#{disk[:name]}'
+        end
+        node.vm.provider :virtualbox do |vb|
+          disk[:name] = "sd#{driveletters[disk[:number]]}"
+          disk_file = "disk-#{machine_num}-#{disks[:name]}.vdi"
+          disk_size = disk[:size]*1024
+          vb.customize [ "createhd", "--filename", disk_file, "--size", disk_size ]
+          vb.customize [ "storageattach", :id, "--storagectl", "SATA Controller", "--port", 3+disks[:number], "--device", 0, "--type", "hdd", "--medium", disk_file ]
         end
       end
 
+      machine[:networks].each do |net|
+        if not net[:ipv4] == ''
+          node.vm.network :private_network, :ip => net[:ipv4]
+        end
+      end
 
       node.vm.provision "selinux", type: "shell" do |s|
         s.path = "provision/shell/sys/selinux-off.sh"
@@ -322,15 +356,23 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       ###end
 
       # multiple privisioners with same name possible?
-      node.vm.provision "xfs_0", type: "shell" do |s|
-        s.path = "provision/shell/gluster/create-brick.sh"
-        s.args = [ "vdb", "/export" ]
-      end
 
-      node.vm.provision "xfs_1", type: "shell" do |s|
-        s.path = "provision/shell/gluster/create-brick.sh"
-        s.args = [ "vdc", "/export" ]
+      disks.each do |disk|
+        node.vm.provision "disk_#{disk[:number]}", type: "shell" do |s|
+          s.path = "provision/shell/gluster/create-brick.sh"
+          s.args = [ disk[:name], "/export" ]
+        end
       end
+      
+      ###node.vm.provision "xfs_0", type: "shell" do |s|
+      ###  s.path = "provision/shell/gluster/create-brick.sh"
+      ###  s.args = [ "vdb", "/export" ]
+      ###end
+
+      ###node.vm.provision "xfs_1", type: "shell" do |s|
+      ###  s.path = "provision/shell/gluster/create-brick.sh"
+      ###  s.args = [ "vdc", "/export" ]
+      ###end
 
       node.vm.provision "gluster_start", type: "shell" do |s|
         s.path = "provision/shell/gluster/gluster-start.sh"
@@ -349,30 +391,24 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         s.args = [ cluster_internal_ips.length, 300]
       end
 
-      node.vm.provision "gluster_createvol_0", type: "shell" do |s|
-        mount_points = cluster_internal_ips.map do |ip|
-          "#{ip}:/export/vdb1/brick"
+
+      disks.each do |disk|
+        vol_name = "gv#{disk[:number]}"
+        vol_mount_point = "/gluster/#{vol_name}"
+
+        brick_mount_points = cluster_internal_ips.map do |ip|
+          "#{ip}:/export/#{disk[:name]}1/brick"
         end
-        s.path = "provision/shell/gluster/gluster-create-volume.sh"
-        s.args = [ "gv0", "3" ] + mount_points
-      end
 
-      node.vm.provision "gluster_mount_0", type: "shell" do |s|
-        s.path = "provision/shell/gluster/gluster-mount-volume.sh"
-        s.args = [ "gv0", "/gluster/gv0" ]
-      end
-
-      node.vm.provision "gluster_createvol_1", type: "shell" do |s|
-        mount_points = cluster_internal_ips.map do |ip|
-          "#{ip}:/export/vdc1/brick"
+        node.vm.provision "gluster_createvol_#{disk[:number]}", type: "shell" do |s|
+          s.path = "provision/shell/gluster/gluster-create-volume.sh"
+          s.args = [ vol_name, "3" ] + brick_mount_points
         end
-        s.path = "provision/shell/gluster/gluster-create-volume.sh"
-        s.args = [ "gv1", "3" ] + mount_points
-      end
 
-      node.vm.provision "gluster_mount_1", type: "shell" do |s|
-        s.path = "provision/shell/gluster/gluster-mount-volume.sh"
-        s.args = [ "gv1", "/gluster/gv1" ]
+        node.vm.provision "gluster_mount_#{disk[:number]}", type: "shell" do |s|
+          s.path = "provision/shell/gluster/gluster-mount-volume.sh"
+          s.args = [ vol_name, vol_mount_point ]
+        end
       end
 
       #
