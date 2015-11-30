@@ -242,6 +242,10 @@ cat <<EOF >> ${FILE}
 EOF
 SCRIPT
 
+PREPARE_SSH_SCRIPT = <<SCRIPT
+echo host_shell ...
+SCRIPT
+
 #
 # The vagrant machine definitions
 #
@@ -249,6 +253,7 @@ SCRIPT
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.synced_folder ".", "/vagrant", disabled: true
+  config.vm.synced_folder "conf", "/vagrant-conf"
 
   #if Vagrant.has_plugin?("vagrant-cachier")
   #  config.cache.scope = :machine
@@ -266,6 +271,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # just let one node do the probing
   probing = false
+
+  preparing_ssh = false
 
   vms.each do |machine|
     config.vm.define machine[:hostname] do |node|
@@ -320,6 +327,17 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       ###  s.inline = NET_FIX_ALWAYS_SCRIPT
       ###  s.args = [ '/gluster/gv0', '/gluster/gv1' ]
       ###end
+
+      #
+      # prepare password-less ssh between the nodes for root 
+      #
+      if !preparing_ssh
+        preparing_ssh = true
+        node.vm.provision :host_shell do |host_shell|
+          host_shell.inline = PREPARE_SSH_SCRIPT
+        end
+      end
+
 
       # multiple privisioners with same name possible?
       node.vm.provision "xfs_0", type: "shell" do |s|
