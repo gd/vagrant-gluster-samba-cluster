@@ -256,6 +256,14 @@ cat <<EOF >> ${FILE}
 EOF
 SCRIPT
 
+driveletters = ('b'..'z').to_a
+
+disks.each_with_index do |disk,disk_num|
+  disk[:number] = disk_num
+  disk[:name][:libvirt] = "vd#{driveletters[disk[:number]]}"
+  disk[:name][:virtualbox] = "sd#{driveletters[disk[:number]]}"
+end
+
 #
 # The vagrant machine definitions
 #
@@ -300,16 +308,15 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         vb.memory = 1024
       end
 
-      driveletters = ('b'..'z').to_a
       disks.each_with_index do |disk,disk_num|
-        disk[:number] = disk_num
+        #disk[:number] = disk_num
         node.vm.provider :libvirt do |lv|
-          disk[:name] = "vd#{driveletters[disk[:number]]}"
-          print " disk ##{disk[:number]}: #{disk[:name]}\n"
-          lv.storage :file, :size => '%{disk[:size]}G', :device => '#{disk[:name]}'
+          #disk[:name] = "vd#{driveletters[disk[:number]]}"
+          #print " disk ##{disk[:number]}: #{disk[:name]}\n"
+          lv.storage :file, :size => '%{disk[:size]}G', :device => '#{disk[:name][:libvirt]}'
         end
         node.vm.provider :virtualbox do |vb|
-          disk[:name] = "sd#{driveletters[disk[:number]]}"
+          #disk[:name] = "sd#{driveletters[disk[:number]]}"
           #disk_file = "disk-#{machine_num}-#{disks[:name]}.vdi"
           disk_size = disk[:size]*1024
           #vb.customize [ "createhd", "--filename", disk_file, "--size", disk_size ]
