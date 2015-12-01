@@ -281,16 +281,18 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # just let one node do the probing
   probing = false
 
-  vms.each do |machine,machine_num|
+  vms.each_with_index do |machine,machine_num|
     config.vm.define machine[:hostname] do |node|
       node.vm.box = machine[:provider][:libvirt][:box]
       node.vm.hostname = machine[:hostname]
 
+      print "machine #{machine_num}: #{machine[:hostname]}\n"
+
       node.vm.provider :libvirt do |libvirt|
         libvirt.default_prefix = machine[:provider][:libvirt][:prefix]
         libvirt.memory = 1024
-        libvirt.storage :file, :size => '64M', :device => 'vdb'
-        libvirt.storage :file, :size => '10G', :device => 'vdc'
+        #libvirt.storage :file, :size => '64M', :device => 'vdb'
+        #libvirt.storage :file, :size => '10G', :device => 'vdc'
       end
 
       node.vm.provider :virtualbox do |vb|
@@ -303,14 +305,15 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         disk[:number] = disk_num
         node.vm.provider :libvirt do |lv|
           disk[:name] = "vd#{driveletters[disk[:number]]}"
+          print " disk ##{disk[:number]}: #{disk[:name]}\n"
           lv.storage :file, :size => '%{disk[:size]}G', :device => '#{disk[:name]}'
         end
         node.vm.provider :virtualbox do |vb|
           disk[:name] = "sd#{driveletters[disk[:number]]}"
-          disk_file = "disk-#{machine_num}-#{disks[:name]}.vdi"
+          #disk_file = "disk-#{machine_num}-#{disks[:name]}.vdi"
           disk_size = disk[:size]*1024
-          vb.customize [ "createhd", "--filename", disk_file, "--size", disk_size ]
-          vb.customize [ "storageattach", :id, "--storagectl", "SATA Controller", "--port", 3+disks[:number], "--device", 0, "--type", "hdd", "--medium", disk_file ]
+          #vb.customize [ "createhd", "--filename", disk_file, "--size", disk_size ]
+          #vb.customize [ "storageattach", :id, "--storagectl", "SATA Controller", "--port", 3+disks[:number], "--device", 0, "--type", "hdd", "--medium", disk_file ]
         end
       end
 
@@ -388,7 +391,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       node.vm.provision "gluster_wait_peers", type: "shell" do |s|
         s.path = "provision/shell/gluster/gluster-wait-peers.sh"
-        s.args = [ cluster_internal_ips.length, 300]
+        s.args = [ cluster_internal_ips.length, 300 ]
       end
 
 
@@ -399,6 +402,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         brick_mount_points = cluster_internal_ips.map do |ip|
           "#{ip}:/export/#{disk[:name]}1/brick"
         end
+
+        print " brick mount points: #{brick_mount_points}\n"
 
         node.vm.provision "gluster_createvol_#{disk[:number]}", type: "shell" do |s|
           s.path = "provision/shell/gluster/gluster-create-volume.sh"
