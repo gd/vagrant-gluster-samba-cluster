@@ -76,15 +76,6 @@ vms = [
   },
 ]
 
-# disks: hard-coded for all nodes for now:
-disks = [
-      {
-        :size => 1, # in GB
-      },
-      {
-        :size => 10,
-      },
-]
 
 #
 # Load the config, if it exists,
@@ -256,13 +247,51 @@ cat <<EOF >> ${FILE}
 EOF
 SCRIPT
 
+
+#
+# disks: hard-coded for all nodes for now:
+# TODO: make (some of) these configurable ...
+#
+disks = [
+      {
+        :size => 1, # in GB
+        #:volname => "gv0",
+      },
+      {
+        :size => 10,
+        #:volname => "gv1",
+      },
+]
+
 driveletters = ('b'..'z').to_a
+
+#brick_mount_prefix = "/export"
+brick_mount_prefix = "/bricks"
+brick_path_suffix = "brick"
+gluster_volume_prefix = "gv"
+gluster_mount_prefix = "/gluster"
 
 disks.each_with_index do |disk,disk_num|
   disk[:number] = disk_num
-  disk[:name][:libvirt] = "vd#{driveletters[disk[:number]]}"
-  disk[:name][:virtualbox] = "sd#{driveletters[disk[:number]]}"
+  disk[:volume_name] = "gv#{disk[:number]}"
+  disk[:volume_mount_point] = "#{gluster_mount_prefix}/#{disk[:volume_name]}"
+  disk[:dev_names] = {
+    :libvirt => "vd#{driveletters[disk[:number]]}",
+    :virtualbox => "sd#{driveletters[disk[:number]]}",
+  }
+  disk[:brick_mount_point] = "#{brick_mount_prefix}/#{disk[:volume_name]}"
+  disk[:brick_path] = "#{disk[:brick_mount_point]}/#{brick_path_suffix}"
 end
+
+# /dev/{sv}db --> xfs filesys
+#  --> mount unter /bricks/gv0
+#    --> dir /bricks/gv0-brick0/brick --> dir fuer gluster createvol gv0
+#      --> gluster/fuse mount /gluster/gv0
+
+
+my_config = {
+  :provider => :libvirt,
+}
 
 #
 # The vagrant machine definitions
@@ -286,6 +315,19 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   #  }
   #end
 
+  #config.vm.provider :libvirt
+  #config.vm.provider :virtualbox
+
+  #config.vm.provider :libvirt do |lv, override|
+  #  my_config[:provider] = :libvirt
+  #  #print "setting lv provider\n"
+  #end
+  #
+  #config.vm.provider :virtualbox do |lv, override|
+  #  my_config[:provider] = :virtualbox
+  #  #print "setting vb provider\n"
+  #end
+  
   # just let one node do the probing
   probing = false
 
@@ -309,18 +351,16 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       end
 
       disks.each_with_index do |disk,disk_num|
-        #disk[:number] = disk_num
         node.vm.provider :libvirt do |lv|
-          #disk[:name] = "vd#{driveletters[disk[:number]]}"
-          #print " disk ##{disk[:number]}: #{disk[:name]}\n"
-          lv.storage :file, :size => '%{disk[:size]}G', :device => '#{disk[:name][:libvirt]}'
+          print " [libvirt] disk ##{disk[:number]}: #{disk[:dev_names][:libvirt]}\n"
+          lv.storage :file, :size => '%{disk[:size]}G', :device => '#{disk[:dev_names][:libvirt]}'
         end
         node.vm.provider :virtualbox do |vb|
-          #disk[:name] = "sd#{driveletters[disk[:number]]}"
-          #disk_file = "disk-#{machine_num}-#{disks[:name]}.vdi"
           disk_size = disk[:size]*1024
-          #vb.customize [ "createhd", "--filename", disk_file, "--size", disk_size ]
-          #vb.customize [ "storageattach", :id, "--storagectl", "SATA Controller", "--port", 3+disks[:number], "--device", 0, "--type", "hdd", "--medium", disk_file ]
+          disk_file = "disk-#{machine_num}-#{disk[:dev_names][:virtualbox]}.vdi"
+          print " [virtualbox] disk ##{disk[:number]}: #{disk[:dev_names][:virtualbox]}\n"
+          vb.customize [ "createhd", "--filename", disk_file, "--size", disk_size ]
+          vb.customize [ "storageattach", :id, "--storagectl", "SATA Controller", "--port", 3+disk[:number], "--device", 0, "--type", "hdd", "--medium", disk_file ]
         end
       end
 
@@ -368,21 +408,29 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       # multiple privisioners with same name possible?
 
       disks.each do |disk|
-        node.vm.provision "disk_#{disk[:number]}", type: "shell" do |s|
-          s.path = "provision/shell/gluster/create-brick.sh"
-          s.args = [ disk[:name], "/export" ]
+        # would like to use the actual provider name ... :-(
+        # https://github.com/mitchellh/vagrant/issues/1867
+        #
+        ##node.vm.provision "disk_#{disk[:number]}", type: "shell" do |s|
+        ##  s.path = "provision/shell/gluster/create-brick.sh"
+        ##  s.args = [ disk[:dev_names][my_config[:provider]], disk[:brick_mount_point], brick_path_suffix ]
+        ##end
+        node.vm.provider :libvirt do |lv|
+          print " create_brick: /dev/#{disk[:dev_names][:libvirt]} under #{disk[:brick_mount_point]}\n"
+          node.vm.provision "create_brick_#{disk[:number]}", type: "shell" do |s|
+            s.path = "provision/shell/gluster/create-brick.sh"
+            s.args = [ disk[:dev_names][:libvirt], disk[:brick_mount_point], brick_path_suffix ]
+          end
+        end
+        node.vm.provider :virtualbox do |lv|
+          print " create_brick: /dev/#{disk[:dev_names][:virtualbox]} under #{disk[:brick_mount_point]}\n"
+          node.vm.provision "create_brick_#{disk[:number]}", type: "shell" do |s|
+            s.path = "provision/shell/gluster/create-brick.sh"
+            s.args = [ disk[:dev_names][:virtualbox], disk[:brick_mount_point], brick_path_suffix ]
+          end
         end
       end
       
-      ###node.vm.provision "xfs_0", type: "shell" do |s|
-      ###  s.path = "provision/shell/gluster/create-brick.sh"
-      ###  s.args = [ "vdb", "/export" ]
-      ###end
-
-      ###node.vm.provision "xfs_1", type: "shell" do |s|
-      ###  s.path = "provision/shell/gluster/create-brick.sh"
-      ###  s.args = [ "vdc", "/export" ]
-      ###end
 
       node.vm.provision "gluster_start", type: "shell" do |s|
         s.path = "provision/shell/gluster/gluster-start.sh"
@@ -403,23 +451,20 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
 
       disks.each do |disk|
-        vol_name = "gv#{disk[:number]}"
-        vol_mount_point = "/gluster/#{vol_name}"
-
         brick_mount_points = cluster_internal_ips.map do |ip|
-          "#{ip}:/export/#{disk[:name]}1/brick"
+          "#{ip}:#{disk[:brick_path]}"
         end
-
-        print " brick mount points: #{brick_mount_points}\n"
+        
+        print " brick directories: #{brick_mount_points}\n"
 
         node.vm.provision "gluster_createvol_#{disk[:number]}", type: "shell" do |s|
           s.path = "provision/shell/gluster/gluster-create-volume.sh"
-          s.args = [ vol_name, "3" ] + brick_mount_points
+          s.args = [ disk[:volume_name], "3" ] + brick_mount_points
         end
 
         node.vm.provision "gluster_mount_#{disk[:number]}", type: "shell" do |s|
           s.path = "provision/shell/gluster/gluster-mount-volume.sh"
-          s.args = [ vol_name, vol_mount_point ]
+          s.args = [ disk[:volume_name], disk[:volume_mount_point] ]
         end
       end
 
