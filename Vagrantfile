@@ -279,6 +279,7 @@ disks.each_with_index do |disk,disk_num|
     :libvirt => "vd#{driveletters[disk[:number]]}",
     :virtualbox => "sd#{driveletters[disk[:number]]}",
   }
+  disk[:dev_name] = "sd#{driveletters[disk[:number]]}"
   disk[:brick_mount_point] = "#{brick_mount_prefix}/#{disk[:volume_name]}"
   disk[:brick_path] = "#{disk[:brick_mount_point]}/#{brick_path_suffix}"
 end
@@ -352,13 +353,17 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       disks.each do |disk|
         node.vm.provider :libvirt do |lv|
-          print " [libvirt] disk ##{disk[:number]}: #{disk[:dev_names][:libvirt]}\n"
-          lv.storage :file, :size => '%{disk[:size]}G', :device => '#{disk[:dev_names][:libvirt]}'
+          #print " [libvirt] disk ##{disk[:number]}: #{disk[:dev_names][:libvirt]}\n"
+          #lv.storage :file, :size => "#{disk[:size]}G", :device => "#{disk[:dev_names][:libvirt]}"
+          print " [libvirt] attaching disk ##{disk[:number]}: #{disk[:dev_name]}\n"
+          lv.storage :file, :size => "#{disk[:size]}G", :bus => "sata" , :device => "#{disk[:dev_name]}"
         end
         node.vm.provider :virtualbox do |vb|
           disk_size = disk[:size]*1024
-          disk_file = "disk-#{machine_num}-#{disk[:dev_names][:virtualbox]}.vdi"
-          print " [virtualbox] disk ##{disk[:number]}: #{disk[:dev_names][:virtualbox]}\n"
+          #disk_file = "disk-#{machine_num}-#{disk[:dev_names][:virtualbox]}.vdi"
+          #print " [virtualbox] disk ##{disk[:number]}: #{disk[:dev_names][:virtualbox]}\n"
+          disk_file = "disk-#{machine_num}-#{disk[:dev_name]}.vdi"
+          print " [virtualbox] attaching disk ##{disk[:number]}: #{disk[:dev_name]}\n"
           vb.customize [ "createhd", "--filename", disk_file, "--size", disk_size ]
           vb.customize [ "storageattach", :id, "--storagectl", "SATA Controller", "--port", 3+disk[:number], "--device", 0, "--type", "hdd", "--medium", disk_file ]
         end
@@ -408,27 +413,38 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       # multiple privisioners with same name possible?
 
       disks.each do |disk|
-        # would like to use the actual provider name ... :-(
-        # https://github.com/mitchellh/vagrant/issues/1867
-        #
-        ##node.vm.provision "disk_#{disk[:number]}", type: "shell" do |s|
-        ##  s.path = "provision/shell/gluster/create-brick.sh"
-        ##  s.args = [ disk[:dev_names][my_config[:provider]], disk[:brick_mount_point], brick_path_suffix ]
-        ##end
-        node.vm.provider :libvirt do |lv|
-          print " create_brick: /dev/#{disk[:dev_names][:libvirt]} under #{disk[:brick_mount_point]}\n"
-          node.vm.provision "create_brick_#{disk[:number]}", type: "shell" do |s|
-            s.path = "provision/shell/gluster/create-brick.sh"
-            s.args = [ disk[:dev_names][:libvirt], disk[:brick_mount_point], brick_path_suffix ]
-          end
+
+        print " create_brick: /dev/#{disk[:dev_name]} under #{disk[:brick_mount_point]}\n"
+        node.vm.provision "create_brick_#{disk[:number]}", type: "shell" do |s|
+          s.path = "provision/shell/gluster/create-brick.sh"
+          s.args = [ disk[:dev_name], disk[:brick_mount_point], brick_path_suffix ]
         end
-        node.vm.provider :virtualbox do |vb|
-          print " create_brick: /dev/#{disk[:dev_names][:virtualbox]} under #{disk[:brick_mount_point]}\n"
-          node.vm.provision "create_brick_#{disk[:number]}", type: "shell" do |s|
-            s.path = "provision/shell/gluster/create-brick.sh"
-            s.args = [ disk[:dev_names][:virtualbox], disk[:brick_mount_point], brick_path_suffix ]
-          end
-        end
+
+        ### node.vm.provision "create_brick_#{disk[:number]}", type: "shell" do |s|
+        ###   # empty dummy...
+        ### end
+
+        ### # would like to use the actual provider name ... :-(
+        ### # https://github.com/mitchellh/vagrant/issues/1867
+        ### #
+        ### ##node.vm.provision "disk_#{disk[:number]}", type: "shell" do |s|
+        ### ##  s.path = "provision/shell/gluster/create-brick.sh"
+        ### ##  s.args = [ disk[:dev_names][my_config[:provider]], disk[:brick_mount_point], brick_path_suffix ]
+        ### ##end
+        ### node.vm.provider :libvirt do |lv,override|
+        ###   print " create_brick: /dev/#{disk[:dev_names][:libvirt]} under #{disk[:brick_mount_point]}\n"
+        ###   override.vm.provision "create_brick_#{disk[:number]}", type: "shell" do |s|
+        ###     s.path = "provision/shell/gluster/create-brick.sh"
+        ###     s.args = [ disk[:dev_names][:libvirt], disk[:brick_mount_point], brick_path_suffix ]
+        ###   end
+        ### end
+        ### node.vm.provider :virtualbox do |vb,override|
+        ###   print " create_brick: /dev/#{disk[:dev_names][:virtualbox]} under #{disk[:brick_mount_point]}\n"
+        ###   override.vm.provision "create_brick_#{disk[:number]}", type: "shell" do |s|
+        ###     s.path = "provision/shell/gluster/create-brick.sh"
+        ###     s.args = [ disk[:dev_names][:virtualbox], disk[:brick_mount_point], brick_path_suffix ]
+        ###   end
+        ### end
       end
       
 
