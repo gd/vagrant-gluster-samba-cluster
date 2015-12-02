@@ -273,7 +273,7 @@ gluster_mount_prefix = "/gluster"
 
 disks.each_with_index do |disk,disk_num|
   disk[:number] = disk_num
-  disk[:volume_name] = "gv#{disk[:number]}"
+  disk[:volume_name] = "#{gluster_volume_prefix}#{disk[:number]}"
   disk[:volume_mount_point] = "#{gluster_mount_prefix}/#{disk[:volume_name]}"
   disk[:dev_names] = {
     :libvirt => "vd#{driveletters[disk[:number]]}",
@@ -283,9 +283,9 @@ disks.each_with_index do |disk,disk_num|
   disk[:brick_path] = "#{disk[:brick_mount_point]}/#{brick_path_suffix}"
 end
 
-# /dev/{sv}db --> xfs filesys
+# /dev/{sv}db --> xfs filesys (on /dev/{sv}db1)
 #  --> mount unter /bricks/gv0
-#    --> dir /bricks/gv0-brick0/brick --> dir fuer gluster createvol gv0
+#    --> dir /bricks/gv0/brick --> dir for gluster createvol gv0
 #      --> gluster/fuse mount /gluster/gv0
 
 
@@ -350,7 +350,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         vb.memory = 1024
       end
 
-      disks.each_with_index do |disk,disk_num|
+      disks.each do |disk|
         node.vm.provider :libvirt do |lv|
           print " [libvirt] disk ##{disk[:number]}: #{disk[:dev_names][:libvirt]}\n"
           lv.storage :file, :size => '%{disk[:size]}G', :device => '#{disk[:dev_names][:libvirt]}'
@@ -422,7 +422,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
             s.args = [ disk[:dev_names][:libvirt], disk[:brick_mount_point], brick_path_suffix ]
           end
         end
-        node.vm.provider :virtualbox do |lv|
+        node.vm.provider :virtualbox do |vb|
           print " create_brick: /dev/#{disk[:dev_names][:virtualbox]} under #{disk[:brick_mount_point]}\n"
           node.vm.provision "create_brick_#{disk[:number]}", type: "shell" do |s|
             s.path = "provision/shell/gluster/create-brick.sh"
