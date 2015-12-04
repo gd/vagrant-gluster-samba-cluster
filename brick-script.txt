@@ -1,0 +1,65 @@
+- input:
+  - size
+  - brick base dir
+  - brick mount point
+  - brick identifier:
+    - brick name/number?
+    - ...
+
+- identifiers for an established brick file system:
+  - disk of given size
+  - partition table of type GPT
+  - single partition
+  - partition label: composed of:
+    - brick name
+    - vol name
+    - (mount point)
+  - xfs filesystem on partition
+  - (mounted on given mount point)
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- two scripts:
+  - #1:
+    - input: given a size and a label name,
+    - result: a partition with given label (name) exists and is formatted with xfs
+
+  - #2:
+    - input: a partition label name and a mount point.
+    - result: if such partition exists, it is mounted
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- flow (in case all steps are done):
+  - identify disk device (lsblk -d ...)
+    - todo: how to specify/check size exactly
+      => seems to be the most difficult part to me
+      - lsblk -n -l -d -o NAME,SIZE | grep 10G | cut -d' ' -f1
+  - make label: parted <DEV> mklabel gpt
+    - check: parted <DEV> print
+  - make partition: parted <DEV> mkpart primary 1 100%
+    - check: parted <DEV> print 1
+  - set partition name("label"): parted <DEV> name 1 <NAME>
+    - check: name=$(parted -s -m /dev/sda print| grep ^1 | cut -d: -f6)
+  - make fs: mkfs.xfs -f <PART>
+    - check: blkid -s TYPE <DEV><PART>
+
+  - create entry in fstab
+  - mount
+
+- if 'mount | grep <mountpoint>' success:
+  - DONE
+- else:
+  - for each 'disk':
+  - if size matches:
+    - if no partition table
+      - create partition table (GPT ?!)
+    - else if partition table type == GPT
+      - 
+    - else
+      - exit
+    - if no partitions:
+      - create partition
+      - format xfs
+
+
