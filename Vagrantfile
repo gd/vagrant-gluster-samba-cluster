@@ -280,7 +280,9 @@ disks.each_with_index do |disk,disk_num|
     :virtualbox => "sd#{driveletters[disk[:number]]}",
   }
   disk[:dev_name] = "sd#{driveletters[disk[:number]]}"
-  disk[:brick_mount_point] = "#{brick_mount_prefix}/#{disk[:volume_name]}"
+  disk[:brick_name] = "brick0"
+  disk[:label] = "#{disk[:volume_name]}-#{disk[:brick_name]}"
+  disk[:brick_mount_point] = "#{brick_mount_prefix}/#{disk[:label]}"
   disk[:brick_path] = "#{disk[:brick_mount_point]}/#{brick_path_suffix}"
 end
 
@@ -301,6 +303,7 @@ my_config = {
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.synced_folder ".", "/vagrant", disabled: true
+  #config.vm.synced_folder './', '/vagrant', type: '9p', disabled: false, accessmode: "squash", owner: "vagrant"
 
   #if Vagrant.has_plugin?("vagrant-cachier")
   #  config.cache.scope = :machine
@@ -414,10 +417,16 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       disks.each do |disk|
 
-        print " create_brick: /dev/#{disk[:dev_name]} under #{disk[:brick_mount_point]}\n"
+        #print " create_brick: /dev/#{disk[:dev_name]} under #{disk[:brick_mount_point]}\n"
+        #node.vm.provision "create_brick_#{disk[:number]}", type: "shell" do |s|
+        #  s.path = "provision/shell/gluster/create-brick.sh"
+        #  s.args = [ disk[:dev_name], disk[:brick_mount_point], brick_path_suffix ]
+        #end
+
+        print " create_brick: size #{disk[:size]}G, label #{disk[:label]} under #{disk[:brick_mount_point]}\n"
         node.vm.provision "create_brick_#{disk[:number]}", type: "shell" do |s|
-          s.path = "provision/shell/gluster/create-brick.sh"
-          s.args = [ disk[:dev_name], disk[:brick_mount_point], brick_path_suffix ]
+          s.path = "provision/shell/gluster/create-brick.v2.sh"
+          s.args = [ "#{disk[:size]}G", disk[:label], disk[:brick_mount_point], brick_path_suffix ]
         end
 
         ### node.vm.provision "create_brick_#{disk[:number]}", type: "shell" do |s|
