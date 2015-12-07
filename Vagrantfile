@@ -341,8 +341,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       disks.each do |disk|
         node.vm.provider :libvirt do |lv|
           print " [libvirt] attaching disk ##{disk[:number]}: #{disk[:dev_name]}\n"
-          #lv.storage :file, :size => "#{disk[:size]}G", :device => "#{disk[:dev_names][:libvirt]}"
-          lv.storage :file, :size => "#{disk[:size]}G", :bus => "sata" , :device => "#{disk[:dev_name]}"
+          lv.storage :file, :size => "#{disk[:size]}G", :device => "#{disk[:dev_names][:libvirt]}"
+          #lv.storage :file, :size => "#{disk[:size]}G", :bus => "sata" , :device => "#{disk[:dev_name]}"
         end
         node.vm.provider :virtualbox do |vb|
           disk_size = disk[:size]*1024
