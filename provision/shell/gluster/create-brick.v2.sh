@@ -36,6 +36,7 @@ function existing_partition_for_label()
 
 	[ -n "${_dev}" ] && {
 		errecho "Partition '${_dev}' with label '${_label}' found."
+		_dev="/dev/${_dev}"
 	} || {
 		errecho "No partition with label '${_label}' found."
 	}
@@ -73,7 +74,7 @@ function create_partition_for_size()
 	local _dev="$(locate_disk_for_size ${_size})"
 
 	[ -z "${_dev}" ] && {
-		echo ""
+		echo -n ""
 		return
 	}
 
@@ -81,17 +82,27 @@ function create_partition_for_size()
 		errecho "Created GPT label on ${_dev}."
 	} || {
 		errecho "Failed to created GPT label on ${_dev}."
-		echo ""
+		echo -n ""
 		return
 	}
 
 	parted -s ${_dev} mkpart primary 1 100% && {
 		errecho "Created partition ${_dev}1."
-		echo "${_dev}1"
 	} || {
 		errecho "Failed to create partition on ${_dev}."
-		echo ""
+		echo -n ""
+		return
 	}
+
+	parted -s ${_dev} name 1 ${_label} && {
+		errecho "Labeled ${_dev}1 as ${_label}."
+	} || {
+		errecho "Failed to set name ${_label} on partition ${_dev}1."
+		echo -n ""
+		return
+	}
+
+	echo -n "${_dev}1"
 }
 
 function check_xfs_fs()
@@ -128,7 +139,8 @@ function check_fstab_entry()
 	local _partition=$1
 	local _fstab="/etc/fstab"
 
-	grep -q -s /dev/${_partition} ${_fstab} && {
+	errecho "Checking for entry for ${_partition} in ${_fstab}."
+	grep -q -s ${_partition} ${_fstab} && {
 		errecho "Mount entry for ${_partition} is present in ${_fstab}."
 	}
 }
@@ -184,8 +196,6 @@ PARTITION=$(existing_partition_for_label ${LABEL})
 check_xfs_fs ${PARTITION} || make_xfs ${PARTITION} || fail_xfs ${PARTITION}
 
 mkdir -p ${MOUNTPOINT}
-
-FSTAB=/etc/fstab
 
 check_fstab_entry ${PARTITION} || create_fstab_entry ${PARTITION} ${MOUNTPOINT}
 
