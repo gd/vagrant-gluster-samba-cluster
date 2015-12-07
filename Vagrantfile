@@ -329,9 +329,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       print "machine #{machine_num}: #{machine[:hostname]}\n"
 
-      node.vm.provider :libvirt do |libvirt|
-        libvirt.default_prefix = machine[:provider][:libvirt][:prefix]
-        libvirt.memory = 1024
+      node.vm.provider :libvirt do |lv|
+        lv.default_prefix = machine[:provider][:libvirt][:prefix]
+        lv.memory = 1024
       end
 
       node.vm.provider :virtualbox do |vb|
