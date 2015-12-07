@@ -319,19 +319,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   #  }
   #end
 
-  #config.vm.provider :libvirt
-  #config.vm.provider :virtualbox
-
-  #config.vm.provider :libvirt do |lv, override|
-  #  my_config[:provider] = :libvirt
-  #  #print "setting lv provider\n"
-  #end
-  #
-  #config.vm.provider :virtualbox do |lv, override|
-  #  my_config[:provider] = :virtualbox
-  #  #print "setting vb provider\n"
-  #end
-  
   # just let one node do the probing
   probing = false
 
@@ -345,20 +332,16 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       node.vm.provider :libvirt do |libvirt|
         libvirt.default_prefix = machine[:provider][:libvirt][:prefix]
         libvirt.memory = 1024
-        #libvirt.storage :file, :size => '64M', :device => 'vdb'
-        #libvirt.storage :file, :size => '10G', :device => 'vdc'
       end
 
       node.vm.provider :virtualbox do |vb|
-        #vb.default_prefix = machine[:provider][:virtualbox][:prefix]
         vb.memory = 1024
       end
 
       disks.each do |disk|
         node.vm.provider :libvirt do |lv|
-          #print " [libvirt] disk ##{disk[:number]}: #{disk[:dev_names][:libvirt]}\n"
-          #lv.storage :file, :size => "#{disk[:size]}G", :device => "#{disk[:dev_names][:libvirt]}"
           print " [libvirt] attaching disk ##{disk[:number]}: #{disk[:dev_name]}\n"
+          #lv.storage :file, :size => "#{disk[:size]}G", :device => "#{disk[:dev_names][:libvirt]}"
           lv.storage :file, :size => "#{disk[:size]}G", :bus => "sata" , :device => "#{disk[:dev_name]}"
         end
         node.vm.provider :virtualbox do |vb|
@@ -413,47 +396,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       ###  s.args = [ '/gluster/gv0', '/gluster/gv1' ]
       ###end
 
-      # multiple privisioners with same name possible?
-
       disks.each do |disk|
-
-        #print " create_brick: /dev/#{disk[:dev_name]} under #{disk[:brick_mount_point]}\n"
-        #node.vm.provision "create_brick_#{disk[:number]}", type: "shell" do |s|
-        #  s.path = "provision/shell/gluster/create-brick.sh"
-        #  s.args = [ disk[:dev_name], disk[:brick_mount_point], brick_path_suffix ]
-        #end
-
         print " create_brick: size #{disk[:size]}G, label #{disk[:label]} under #{disk[:brick_mount_point]}\n"
         node.vm.provision "create_brick_#{disk[:number]}", type: "shell" do |s|
           s.path = "provision/shell/gluster/create-brick.v2.sh"
           s.args = [ "#{disk[:size]}G", disk[:label], disk[:brick_mount_point], brick_path_suffix ]
         end
-
-        ### node.vm.provision "create_brick_#{disk[:number]}", type: "shell" do |s|
-        ###   # empty dummy...
-        ### end
-
-        ### # would like to use the actual provider name ... :-(
-        ### # https://github.com/mitchellh/vagrant/issues/1867
-        ### #
-        ### ##node.vm.provision "disk_#{disk[:number]}", type: "shell" do |s|
-        ### ##  s.path = "provision/shell/gluster/create-brick.sh"
-        ### ##  s.args = [ disk[:dev_names][my_config[:provider]], disk[:brick_mount_point], brick_path_suffix ]
-        ### ##end
-        ### node.vm.provider :libvirt do |lv,override|
-        ###   print " create_brick: /dev/#{disk[:dev_names][:libvirt]} under #{disk[:brick_mount_point]}\n"
-        ###   override.vm.provision "create_brick_#{disk[:number]}", type: "shell" do |s|
-        ###     s.path = "provision/shell/gluster/create-brick.sh"
-        ###     s.args = [ disk[:dev_names][:libvirt], disk[:brick_mount_point], brick_path_suffix ]
-        ###   end
-        ### end
-        ### node.vm.provider :virtualbox do |vb,override|
-        ###   print " create_brick: /dev/#{disk[:dev_names][:virtualbox]} under #{disk[:brick_mount_point]}\n"
-        ###   override.vm.provision "create_brick_#{disk[:number]}", type: "shell" do |s|
-        ###     s.path = "provision/shell/gluster/create-brick.sh"
-        ###     s.args = [ disk[:dev_names][:virtualbox], disk[:brick_mount_point], brick_path_suffix ]
-        ###   end
-        ### end
       end
       
 
