@@ -338,6 +338,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         vb.memory = 1024
       end
 
+      node.vm.provider :virtualbox do |vb|
+        vb.customize [ "storagectl", :id, "--name", "Vagrant SATA Controller", "--add", "sata" ]
+      end
+
       disks.each do |disk|
         node.vm.provider :libvirt do |lv|
           print " [libvirt] attaching disk ##{disk[:number]}: #{disk[:dev_name]}\n"
@@ -348,10 +352,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
           disk_size = disk[:size]*1024
           #disk_file = "disk-#{machine_num}-#{disk[:dev_names][:virtualbox]}.vdi"
           #print " [virtualbox] disk ##{disk[:number]}: #{disk[:dev_names][:virtualbox]}\n"
-          disk_file = "disk-#{machine_num}-#{disk[:dev_name]}.vdi"
-          print " [virtualbox] attaching disk ##{disk[:number]}: #{disk[:dev_name]}\n"
+          disk_file = "disk-machine#{machine_num}-disk#{disk[:number]}.vdi"
+          print " [virtualbox] attaching disk ##{disk[:number]} (#{disk[:dev_name]}) to machine #{machine_num}\n"
           vb.customize [ "createhd", "--filename", disk_file, "--size", disk_size ]
-          vb.customize [ "storageattach", :id, "--storagectl", "SATA Controller", "--port", 3+disk[:number], "--device", 0, "--type", "hdd", "--medium", disk_file ]
+          vb.customize [ "storageattach", :id, "--storagectl", "Vagrant SATA Controller", "--port", disk[:number], "--device", 0, "--type", "hdd", "--medium", disk_file ]
         end
       end
 
